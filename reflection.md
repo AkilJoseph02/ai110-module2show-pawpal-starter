@@ -54,7 +54,11 @@ Contains the following actions that the application should be able to do:
 **b. Design changes**
 
 - Did your design change during implementation?
+    Answer: Yes.
 - If yes, describe at least one change and why you made it.
+    Answer: Allowed the plan class to track parent plan (in cases where a plan is appended to another), allowed the plan class to keep track of which pets are involved and which owner they belong to. Allowed the Plan class to check constraints before adding in tasks. I allowed these changes to go through because they're necessary in making a functional plan for pets (keeping of who/what's involved in said plan and making sure there's no overlap).
+
+    The changes made sense to add.
 
 ---
 
