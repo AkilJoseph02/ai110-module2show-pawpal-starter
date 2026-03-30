@@ -5,7 +5,51 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+Contains the following actions that the application should be able to do:
+    1. Add a pet in, so that the owner can have each task be related to a specific pet.
+    2. See a task for the day for all of the owner's pets (like an overview).
+    3. Create tasks with their own descriptions, time, duration, etc.
 - What classes did you include, and what responsibilities did you assign to each?
+    1. Pet:
+       Attributes:
+        a. Species
+        b. Breed
+        c. Gender
+        d. Weight and Height
+        e. Name
+        f. Age
+        g. Owner
+       Methods:
+        None
+    2. Tasks:
+       Attributes:
+        a. Description/Name
+        b. Start time
+        c. Duration
+        d. Location
+        e. Status (If task was done or not, if the task was delayed, etc.)
+        f. Priority
+       Methods:
+        a. Display the pet(s) and their respective owner that are involved in the task.
+        b. Display status of said task to show if it was done/in progress/aborted.
+    3. Owner:
+       Attributes:
+        a. Name
+        b. Age
+        c. Gender
+        b. List of pets they own.
+       Methods:
+        a. Assign a task for a specific pet at given time/place.
+    4. Plan:
+       Attributes:
+        a. List of Tasks
+        b. Pets involved.
+        c. Owner the plan belongs to.
+       Methods:
+        a. Create a plan that best suits the owner on how they want to take care of their pets.
+        b. Check for constraints while creating said plan (if this task overlaps with another in time, if a pet or the owner are available for doing a certain task at a given time, etc.)
+        c. Allow a plan to be editted.
+        d. Allow a plan to be deleted.
 
 **b. Design changes**
 
