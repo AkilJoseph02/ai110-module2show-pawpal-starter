@@ -1,0 +1,55 @@
+from pawpal_system import Pet
+from pawpal_system import Owner
+from pawpal_system import Task
+from pawpal_system import Plan
+
+
+def main():
+    # Create an owner
+    Jon = Owner(name="John Arbuckle", age=25, gender="male")
+    
+
+    # Create pets and add them to the owner
+    Odie = Pet(name="Odie", species="dog", breed='Golden Retriever', gender="male", weight=30.0, height=20.0, age=5, owner=Jon)
+    Garfield = Pet(name="Garfield", species="cat", breed='Tabby', gender="male", weight=50.0, height=10.0, age=7, owner=Jon)
+    
+    Jon.add_pet(Odie)
+    Jon.add_pet(Garfield)
+    
+
+    # Create a plan for the day
+    daily_plan = Plan(owner=Jon)
+    
+
+    # Create some tasks for the pets
+    task1 = Task(description="Take Odie for a walk", start_time=800, duration=600, location="Park", priority=1, pets=[Odie])
+    task2 = Task(description="Feed Garfield", start_time=1200, duration=300, location="Kitchen", priority=2, pets=[Garfield])
+    task3 = Task(description="Play with Odie", start_time=1800, duration=900, location="Living Room", priority=3, pets=[Odie])
+    
+
+    # Add tasks to the plan
+    daily_plan.add_task(task1)
+    daily_plan.add_task(task2)
+    daily_plan.add_task(task3)
+    
+
+    # Display owner and their pets
+    print(f"\n{Jon}")
+    Jon.list_pets()
+
+
+    # Display the plan
+    print(daily_plan.generate_schedule())
+    print(daily_plan.get_summary())
+
+
+    # Display individual task details
+    print("\n=== Task Details ===")
+    for task in daily_plan.sort_tasks_by_time():
+        task.display_status()
+        task.display_pets_and_owner()
+        print()  # Add blank line between tasks
+
+
+if __name__ == "__main__":
+    main()
