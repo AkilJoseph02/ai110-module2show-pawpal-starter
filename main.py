@@ -22,19 +22,29 @@ def main():
     
 
     # Create some tasks for the pets
-    task1 = Task(description="Take Odie for a walk", start_time=800, duration=30, location="Park", priority=1, pets=[Odie])
-    task2 = Task(description="Feed Garfield", start_time=1000, duration=5, location="Kitchen", priority=2, pets=[Garfield])
-    task3 = Task(description="Play with Odie", start_time=1300, duration=20, location="Living Room", priority=3, pets=[Odie])
+    task2 = Task(description="Take Odie for a walk", start_time=800, duration=30, location="Park", priority=1, pets=[Odie])
+    task3 = Task(description="Feed Garfield", start_time=1000, duration=5, location="Kitchen", priority=2, pets=[Garfield])
+    task1 = Task(description="Play with Odie", start_time=1300, duration=20, location="Living Room", priority=3, pets=[Odie])
+    task4 = Task(description="Groom Garfield", start_time=800, duration=15, location="Bathroom", priority=1, pets=[Garfield])
     
 
     # Add tasks to the plan
     daily_plan.add_task(task1)
     daily_plan.add_task(task2)
     daily_plan.add_task(task3)
+    daily_plan.add_task(task4)
     
     # Automatically schedule tasks
     if not daily_plan.schedule_tasks():
         print("Warning: Could not schedule all tasks without conflicts.")
+    
+    # Check for conflicts
+    conflicts = daily_plan.get_conflicts()
+    if conflicts:
+        print(f"\nWarning: Found {len(conflicts)} scheduling conflict(s):")
+        for conflict in conflicts:
+            print(f"  - {conflict['description']}")
+    
     
 
     # Display owner and their pets

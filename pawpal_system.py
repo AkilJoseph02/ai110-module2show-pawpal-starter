@@ -6,6 +6,12 @@ def time_to_str(minutes: int) -> str:
     mins = minutes % 60
     return f"{hours:02d}:{mins:02d}"
 
+def minutes_to_hhmm(minutes: int) -> int:
+    """Convert minutes past midnight to HHMM format."""
+    hours = minutes // 60
+    mins = minutes % 60
+    return hours * 100 + mins
+
 #Pet class represents a pet with attributes and methods to manage tasks.
 class Pet:
     # Initialize a pet with given attributes and an empty task list.
@@ -129,6 +135,39 @@ class Task:
     def mark_complete(self) -> None:
         """Mark the task as completed."""
         self.status = "done"
+        
+        # If task is recurring, create next iteration
+        if self.is_recurring() and self.start_time is not None:
+            if self.frequency == "daily":
+                offset = 1440  # 24 hours in minutes
+            elif self.frequency == "weekly":
+                offset = 10080  # 7 days in minutes
+            else:
+                return  # Handle other frequencies if needed
+            
+            new_start_minutes = (self.start_time + offset) % 1440
+            new_start_hhmm = minutes_to_hhmm(new_start_minutes)
+            
+            # Create new task with same attributes
+            new_task = Task(
+                description=self.description,
+                start_time=new_start_hhmm,
+                duration=self.duration,
+                pets=[],  # Will add pets below
+                location=self.location,
+                priority=self.priority,
+                status="pending",
+                plan=self.plan,
+                frequency=self.frequency
+            )
+            
+            # Add pets to new task (bidirectional association)
+            for pet in self.pets:
+                new_task.add_pet(pet)
+            
+            # Add to plan if exists
+            if self.plan:
+                self.plan.add_task(new_task)
     
     # Method to mark the task as in progress.
     def mark_in_progress(self) -> None:
@@ -296,47 +335,38 @@ class Plan:
         Check for constraints (time overlaps, availability, etc.).
         Returns True if task can be added, False otherwise.
         """
-        for existing_task in self.tasks:
-            if existing_task is new_task:
-                continue
+        new_pets = set(pets)
 
-            # Skip tasks that are already completed or aborted
-            if existing_task.status in ["done", "aborted"]:
-                continue
-            
-            # Check if time slots overlap
-            if self._times_overlap(existing_task, new_task):
-                # Check if any shared pets exist
-                existing_pets = set(existing_task.pets)
-                new_pets = set(pets)
-                if existing_pets & new_pets:  # If intersection is not empty
-                    return False
-        
-        # Ensure no same-pet task shares the same start time
+        # Check time-based conflicts for shared pets and reserve recovery gap
         for existing_task in self.tasks:
             if existing_task is new_task:
                 continue
             if existing_task.status in ["done", "aborted"] or existing_task.start_time is None:
                 continue
+
             existing_pets = set(existing_task.pets)
-            new_pets = set(pets)
-            if existing_pets & new_pets and existing_task.start_time == time:
+            if not existing_pets & new_pets:
+                continue
+
+            # Same pet is used by both tasks.
+            if self._times_overlap(existing_task, new_task):
                 return False
-        
-        # Check max tasks per pet per day (e.g., 5)
+
+            # Same start time conflict (redundant with overlap but explicit rule preserved)
+            if existing_task.start_time == time:
+                return False
+
+            # Require 30 min rest between tasks for same pet
+            existing_end = existing_task.start_time + existing_task.duration
+            if abs(existing_end - time) < 30:
+                return False
+
+        # Check max tasks per pet per day
         for pet in pets:
             pet_tasks_today = [t for t in self.get_tasks_by_pet(pet) if t.status not in ["done", "aborted"]]
             if len(pet_tasks_today) >= 5:
                 return False
-        
-        # Ensure at least 30 min rest between tasks for the same pet
-        for pet in pets:
-            for existing in self.get_tasks_by_pet(pet):
-                if existing is new_task:
-                    continue
-                if existing.status not in ["done", "aborted"] and existing.start_time is not None and abs((existing.start_time + existing.duration) - time) < 30:
-                    return False
-        
+
         return True
     
     # Helper method to check if two tasks have overlapping times.
@@ -370,7 +400,50 @@ class Plan:
         """Get all tasks with a specific priority level."""
         return [task for task in self.tasks if task.priority == priority]
     
-    # Method to get available time slots for a pet, returning tasks that the pet is already assigned to.
+    # Method to get tasks filtered by completion status.
+    def get_tasks_by_completion_status(self, completed: bool) -> list:
+        """Get tasks filtered by completion status. If completed=True, return done tasks; if False, return non-done tasks."""
+        if completed:
+            return [task for task in self.tasks if task.status == "done"]
+        else:
+            return [task for task in self.tasks if task.status != "done"]
+    
+    # Method to get tasks filtered by pet name.
+    def get_tasks_by_pet_name(self, pet_name: str) -> list:
+        """Get tasks that involve a pet with the specified name."""
+        return [task for task in self.tasks if any(pet.name == pet_name for pet in task.pets)]
+    
+    # Method to get conflicts in the plan.
+    def get_conflicts(self) -> list:
+        """Get a list of conflicts in the plan. Returns list of dicts with conflict details."""
+        conflicts = []
+        for i, task1 in enumerate(self.tasks):
+            for j, task2 in enumerate(self.tasks):
+                if i >= j:  # Avoid duplicate pairs and self-comparison
+                    continue
+                # Skip completed or aborted tasks
+                if task1.status in ["done", "aborted"] or task2.status in ["done", "aborted"]:
+                    continue
+                if self._times_overlap(task1, task2):
+                    shared_pets = set(task1.pets) & set(task2.pets)
+                    if shared_pets:
+                        # Same pet at same time
+                        conflicts.append({
+                            "type": "same_pet_same_time",
+                            "tasks": [task1, task2],
+                            "shared_pets": list(shared_pets),
+                            "description": f"Tasks '{task1.description}' and '{task2.description}' involve the same pet(s) {', '.join(p.name for p in shared_pets)} at overlapping times."
+                        })
+                    else:
+                        # Different pets overlapping
+                        conflicts.append({
+                            "type": "different_pets_overlap", 
+                            "tasks": [task1, task2],
+                            "pet_groups": [task1.pets, task2.pets],
+                            "description": f"Tasks '{task1.description}' and '{task2.description}' involve different pets at overlapping times."
+                        })
+        return conflicts
+    
     def get_available_time_slots(self, pet: 'Pet', duration: int) -> list:
         """
         Get available time slots for a pet.

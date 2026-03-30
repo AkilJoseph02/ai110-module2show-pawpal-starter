@@ -67,7 +67,9 @@ Contains the following actions that the application should be able to do:
 **a. Constraints and priorities**
 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
+Answer: Considers if task involving the same/different pets overlap.
 - How did you decide which constraints mattered most?
+Answer: I figured that that the time constraints would be the most important, considering that the entire point of Pawpal is to consider the amount of time a pet owner has to care for their pets, and creating a plan to efficiently use all that time to ensure that the owner can give sufficient care.
 
 **b. Tradeoffs**
 

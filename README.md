@@ -41,3 +41,9 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+### Smarter Schedulingk
+1. Checks for any time conflicts with tasks in cases where ones either involving the same pet or different pets happen around the same time. Leaves a warning.
+2. Sorts the tasks by start time.
+3. Can be filtered by pet name or by status.
+4. Automates reoccuring tasks (daily, weekly, etc) once they're completed.
