@@ -1,5 +1,11 @@
 # PawPal System - A pet care management system
 
+def time_to_str(minutes: int) -> str:
+    """Convert minutes past midnight to HH:MM format."""
+    hours = minutes // 60
+    mins = minutes % 60
+    return f"{hours:02d}:{mins:02d}"
+
 #Pet class represents a pet with attributes and methods to manage tasks.
 class Pet:
     # Initialize a pet with given attributes and an empty task list.
@@ -46,10 +52,32 @@ class Pet:
 
 #Task class represents a task with attributes and methods to manage its status and associated pets.
 class Task:
+    @staticmethod
+    def _normalize_start_time(start_time: int | None) -> int | None:
+        """Convert HHMM inputs to minutes since midnight (24-hour)."""
+        if start_time is None:
+            return None
+        if not isinstance(start_time, int):
+            raise ValueError("start_time must be an integer in HHMM format")
+
+        hours = start_time // 100
+        minutes = start_time % 100
+        if 0 <= hours < 24 and 0 <= minutes < 60:
+            return hours * 60 + minutes
+
+        raise ValueError("start_time must be HHMM 0000-2359")
+
     # Initialize a task with given attributes and an optional list of pets.
-    def __init__(self, description: str, start_time: int, duration: int, pets: list = None, location: str = "", priority: int = 1, status: str = "pending", plan=None, frequency: str = "once"):
+    def __init__(self, description: str, start_time: int | None = None, duration: int = 1, pets: list = None, location: str = "", priority: int = 1, status: str = "pending", plan=None, frequency: str = "once"):
+        if duration <= 0:
+            raise ValueError("duration must be positive.")
+
+        normalized_start = self._normalize_start_time(start_time)
+        if normalized_start is not None and normalized_start + duration > 1440:
+            raise ValueError("Task cannot extend past midnight (1440 minutes).")
+
         self.description = description
-        self.start_time = start_time
+        self.start_time = normalized_start
         self.duration = duration
         self.location = location
         self.status = status
@@ -269,6 +297,9 @@ class Plan:
         Returns True if task can be added, False otherwise.
         """
         for existing_task in self.tasks:
+            if existing_task is new_task:
+                continue
+
             # Skip tasks that are already completed or aborted
             if existing_task.status in ["done", "aborted"]:
                 continue
@@ -280,6 +311,32 @@ class Plan:
                 new_pets = set(pets)
                 if existing_pets & new_pets:  # If intersection is not empty
                     return False
+        
+        # Ensure no same-pet task shares the same start time
+        for existing_task in self.tasks:
+            if existing_task is new_task:
+                continue
+            if existing_task.status in ["done", "aborted"] or existing_task.start_time is None:
+                continue
+            existing_pets = set(existing_task.pets)
+            new_pets = set(pets)
+            if existing_pets & new_pets and existing_task.start_time == time:
+                return False
+        
+        # Check max tasks per pet per day (e.g., 5)
+        for pet in pets:
+            pet_tasks_today = [t for t in self.get_tasks_by_pet(pet) if t.status not in ["done", "aborted"]]
+            if len(pet_tasks_today) >= 5:
+                return False
+        
+        # Ensure at least 30 min rest between tasks for the same pet
+        for pet in pets:
+            for existing in self.get_tasks_by_pet(pet):
+                if existing is new_task:
+                    continue
+                if existing.status not in ["done", "aborted"] and existing.start_time is not None and abs((existing.start_time + existing.duration) - time) < 30:
+                    return False
+        
         return True
     
     # Helper method to check if two tasks have overlapping times.
@@ -330,9 +387,36 @@ class Plan:
     # Method to sort all tasks by start time.
     def sort_tasks_by_time(self) -> list:
         """Sort all tasks by start time."""
-        return sorted(self.tasks, key=lambda t: t.start_time)
-    
-    # Method to edit a task in the plan, allowing changes to description and status.
+        return sorted(
+            self.tasks,
+            key=lambda t: (t.start_time is None, t.start_time if t.start_time is not None else float('inf')),
+        )
+
+    def schedule_tasks(self) -> bool:
+        """Automatically schedule tasks by priority (lower number = higher priority)."""
+        fixed_tasks = [t for t in self.tasks if t.start_time is not None]
+        unscheduled_tasks = [t for t in self.tasks if t.start_time is None]
+
+        # Validate all fixed tasks first.
+        for task in fixed_tasks:
+            if not self.check_constraints(task, task.pets, task.start_time):
+                return False
+
+        # Assign unscheduled tasks to first available 30-min slots.
+        for task in sorted(unscheduled_tasks, key=lambda t: t.priority):
+            assigned = False
+            candidate = 0
+            while candidate <= 1440 - task.duration:
+                if self.check_constraints(task, task.pets, candidate):
+                    task.start_time = candidate
+                    assigned = True
+                    break
+                candidate += 30
+            if not assigned:
+                return False
+
+        return True
+
     def edit_plan(self, task: 'Task', new_description: str = None, new_status: str = None) -> bool:
         """
         Allow a plan to be edited.
@@ -364,8 +448,14 @@ class Plan:
         
         for task in sorted_tasks:
             pets_str = ", ".join([p.name for p in task.pets]) if task.pets else "No pets"
+            if task.start_time is not None:
+                start_str = time_to_str(task.start_time)
+                end_str = time_to_str(task.start_time + task.duration)
+            else:
+                start_str = "Unscheduled"
+                end_str = "Unscheduled"
             schedule += f"[{task.status.upper()}] {task.description}\n"
-            schedule += f"  Time: {task.start_time} (Duration: {task.duration}min)\n"
+            schedule += f"  Time: {start_str} - {end_str} ({task.duration} min)\n"
             schedule += f"  Pets: {pets_str}\n"
             schedule += f"  Location: {task.location} | Priority: {task.priority}\n\n"
         
@@ -381,3 +471,33 @@ class Plan:
         summary += f"  Completed: {len(self.get_tasks_by_status('done'))}\n"
         summary += f"  Aborted: {len(self.get_tasks_by_status('aborted'))}\n"
         return summary
+
+    def warning_message(self) -> str:
+        """Produce a warning string for Streamlit based on schedule state."""
+        if not self.tasks:
+            return "No scheduled tasks yet. Add tasks and click Generate schedule."
+        return f"Schedule generated: {len(self.tasks)} task(s) in plan."
+
+    def schedule_markdown(self) -> str:
+        """Produce markdown for schedule display."""
+        if not self.tasks:
+            return "### No tasks scheduled yet."
+
+        md = f"### Schedule for {self.owner.name}\n"
+        for task in self.sort_tasks_by_time():
+            pets_str = ", ".join([p.name for p in task.pets]) if task.pets else "No pets"
+            md += f"- **{task.description}**\n"
+            if task.start_time is not None:
+                start_str = time_to_str(task.start_time)
+                end_str = time_to_str(task.start_time + task.duration)
+            else:
+                start_str = "Unscheduled"
+                end_str = "Unscheduled"
+            md += f"  - Time: {start_str} - {end_str} ({task.duration} min)\n"
+            md += f"  - Pets: {pets_str}\n"
+            md += f"  - Location: {task.location}\n"
+            md += f"  - Status: {task.status}\n"
+            md += f"  - Priority: {task.priority}\n"
+            md += f"  - Frequency: {task.frequency}\n\n"
+        md += self.get_summary().replace("\n", "\\n") if False else ""
+        return md
