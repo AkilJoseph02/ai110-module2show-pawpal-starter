@@ -47,3 +47,24 @@ pip install -r requirements.txt
 2. Sorts the tasks by start time.
 3. Can be filtered by pet name or by status.
 4. Automates reoccuring tasks (daily, weekly, etc) once they're completed.
+
+### Testing PawPal+
+python -m pytest -r p
+========================================= test session starts ==========================================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\aj200\Downloads\CodePath AI Course\ai110-module2show-pawpal-starter
+collected 7 items                                                                                       
+
+tests\test_pawpal.py .......                                                                      [100%]
+
+======================================= short test summary info ======================================== 
+PASSED tests/test_pawpal.py::TestTaskCompletion::test_mark_aborted_changes_status
+PASSED tests/test_pawpal.py::TestTaskCompletion::test_mark_complete_changes_status
+PASSED tests/test_pawpal.py::TestTaskCompletion::test_mark_in_progress_changes_status
+PASSED tests/test_pawpal.py::TestTaskAddition::test_add_duplicate_task_returns_false
+PASSED tests/test_pawpal.py::TestTaskAddition::test_add_task_increases_pet_task_count
+PASSED tests/test_pawpal.py::TestTaskAddition::test_add_task_returns_true_on_success
+PASSED tests/test_pawpal.py::TestTaskAddition::test_remove_task_decreases_pet_task_count
+========================================== 7 passed in 0.19s =========================================== 
+
+Confidence Level: 3

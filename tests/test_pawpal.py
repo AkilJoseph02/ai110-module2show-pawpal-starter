@@ -46,9 +46,9 @@ class TestTaskAddition(unittest.TestCase):
         self.owner = Owner(name="Test Owner", age=30, gender="male")
         self.pet = Pet(name="Max", species="dog", breed="Golden Retriever", gender="male", 
                        weight=65.0, height=24.0, age=5, owner=self.owner)
-        self.task1 = Task(description="Take Max for a walk", start_time=800, duration=600, 
+        self.task1 = Task(description="Take Max for a walk", start_time=800, duration=60, 
                           location="Park", priority=1)
-        self.task2 = Task(description="Play with Max", start_time=1400, duration=900, 
+        self.task2 = Task(description="Play with Max", start_time=1400, duration=30, 
                           location="Backyard", priority=2)
     
     def test_add_task_increases_pet_task_count(self):
