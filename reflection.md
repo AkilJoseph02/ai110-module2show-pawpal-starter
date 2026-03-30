@@ -75,6 +75,7 @@ Answer: I figured that that the time constraints would be the most important, co
 
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
+Answer: Haven't factored how deal with preference of the owner yet. Figured making sure that there are no conflicts with pet tasks was more important than making a plan hyper-specialized to the owner.
 
 ---
 
