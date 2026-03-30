@@ -1,0 +1,46 @@
+classDiagram
+    class Pet {
+        -species: String
+        -breed: String
+        -gender: String
+        -weight: Float
+        -height: Float
+        -name: String
+        -age: Int
+        -owner: Owner
+    }
+    
+    class Task {
+        -description: String
+        -start_time: DateTime
+        -duration: Int
+        -location: String
+        -status: String
+        -priority: Int
+        +display_pets_and_owner()
+        +display_status()
+    }
+    
+    class Owner {
+        -name: String
+        -age: Int
+        -gender: String
+        -pets: List~Pet~
+        +assign_task(task: Task, pet: Pet, time: DateTime, location: String)
+    }
+    
+    class Plan {
+        -tasks: List~Task~
+        -pets: List~Pet~
+        -owner: Owner
+        +create_plan()
+        +check_constraints()
+        +edit_plan()
+        +delete_plan()
+    }
+    
+    Owner "1" -- "*" Pet : owns
+    Owner "1" -- "1" Plan : has
+    Plan "1" -- "*" Task : contains
+    Plan "*" -- "*" Pet : involves
+    Task "*" -- "*" Pet : assigned_to
