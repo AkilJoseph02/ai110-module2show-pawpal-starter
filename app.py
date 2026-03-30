@@ -146,6 +146,12 @@ if st.button("Generate schedule"):
         task_pet.add_task(task)
         daily_plan.add_task(task)
 
+    # Schedule the tasks using the Plan class
+    if daily_plan.schedule_tasks():
+        st.success("Schedule generated successfully!")
+    else:
+        st.error("Unable to schedule all tasks due to conflicts or constraints.")
+
     st.warning(daily_plan.warning_message())
     st.markdown(daily_plan.schedule_markdown())
 

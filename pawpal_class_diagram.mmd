@@ -1,46 +1,83 @@
 classDiagram
     class Pet {
+        -name: String
         -species: String
         -breed: String
         -gender: String
         -weight: Float
         -height: Float
-        -name: String
         -age: Int
-        -owner: Owner
+        -owner: Owner  // Reference to owner
+        -tasks: List~Task~  // Added: List of tasks for this pet (bidirectional with Task)
+        +add_task(task: Task): bool
+        +remove_task(task: Task): bool
+        +get_tasks(): List~Task~
+        +get_tasks_by_status(status: String): List~Task~
     }
     
     class Task {
         -description: String
-        -start_time: DateTime
+        -start_time: Int  // Changed: Now Int (minutes past midnight), can be None
         -duration: Int
         -location: String
-        -status: String
+        -status: String  // e.g., "pending", "done"
         -priority: Int
-        +display_pets_and_owner()
-        +display_status()
+        -frequency: String  // Added: "once", "daily", "weekly", "monthly" for recurring tasks
+        -plan: Plan  // Added: Reference to parent plan
+        -pets: List~Pet~  // Added: List of pets assigned (bidirectional with Pet)
+        +display_pets_and_owner(): String
+        +display_status(): String
+        +add_pet(pet: Pet): bool  // Added: Bidirectional association
+        +remove_pet(pet: Pet): bool  // Added: Bidirectional association
+        +mark_complete(): void  // Added: Handles completion and recurrence
+        +mark_in_progress(): void  // Added
+        +mark_aborted(): void  // Added
+        +is_recurring(): bool  // Added
     }
     
     class Owner {
         -name: String
         -age: Int
         -gender: String
-        -pets: List~Pet~
-        +assign_task(task: Task, pet: Pet, time: DateTime, location: String)
+        -pets: List~Pet~  // List of owned pets
+        +add_pet(pet: Pet): bool
+        +remove_pet(pet: Pet): bool
+        +get_all_tasks(): List~Task~
+        +get_tasks_by_pet(pet: Pet): List~Task~
+        +get_tasks_by_status(status: String): List~Task~
+        +assign_task(task: Task, pets: List~Pet~, plan: Plan, time: Int, location: String): bool  // Updated: Parameters now include pets list, plan, and time/location
+        +list_pets(): void
     }
     
     class Plan {
-        -tasks: List~Task~
-        -pets: List~Pet~
-        -owner: Owner
-        +create_plan()
-        +check_constraints()
-        +edit_plan()
-        +delete_plan()
+        -tasks: List~Task~  // List of tasks in the plan
+        -pets: List~Pet~  // List of pets involved (less central in final impl, but kept)
+        -owner: Owner  // Reference to owner
+        +create_plan(): Dict  // Returns plan structure
+        +add_task(task: Task): bool
+        +remove_task(task: Task): bool
+        +check_constraints(new_task: Task, pets: List~Pet~, time: Int): bool  // Added: Core constraint checking
+        +get_tasks_by_pet(pet: Pet): List~Task~
+        +get_tasks_by_time(start_time: Int, end_time: Int): List~Task~
+        +get_tasks_by_status(status: String): List~Task~
+        +get_tasks_by_priority(priority: Int): List~Task~
+        +get_tasks_by_completion_status(completed: bool): List~Task~
+        +get_tasks_by_pet_name(pet_name: String): List~Task~
+        +get_conflicts(): List~Dict~  // Added: Detects scheduling conflicts
+        +sort_tasks_by_priority(): List~Task~
+        +sort_tasks_by_time(): List~Task~
+        +schedule_tasks(): bool  // Added: Auto-schedules unscheduled tasks
+        +edit_plan(task: Task, new_description: String?, new_status: String?): bool
+        +delete_plan(): void
+        +generate_schedule(): String  // Added: Formats schedule as string
+        +get_summary(): String  // Added: Plan summary
+        +warning_message(): String  // Added: For UI warnings
+        +schedule_markdown(): String  // Added: Markdown for display
     }
     
-    Owner "1" -- "*" Pet : owns
-    Owner "1" -- "1" Plan : has
-    Plan "1" -- "*" Task : contains
-    Plan "*" -- "*" Pet : involves
-    Task "*" -- "*" Pet : assigned_to
+    %% Associations (updated for bidirectionality and completeness)
+    Owner "1" -- "*" Pet : owns >
+    Pet "1" -- "*" Task : has_tasks >  
+    Plan "1" -- "*" Task : contains > 
+    Plan "*" -- "*" Pet : involves >
+    Task "*" -- "*" Pet : assigned_to >
